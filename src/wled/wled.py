@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self
 
 import aiohttp
+import async_timeout
 import backoff
 from awesomeversion import AwesomeVersion, AwesomeVersionException
 from cachetools import TTLCache
@@ -183,7 +184,7 @@ class WLED:
             data["v"] = True
 
         try:
-            async with asyncio.timeout(self.request_timeout):
+            async with async_timeout.timeout(self.request_timeout):
                 response = await self.session.request(
                     method,
                     url,
@@ -373,9 +374,11 @@ class WLED:
         *,
         brightness: int | None = None,
         clones: int | None = None,
-        color_primary: tuple[int, int, int, int] | tuple[int, int, int] | None = None,
-        color_secondary: tuple[int, int, int, int] | tuple[int, int, int] | None = None,
-        color_tertiary: tuple[int, int, int, int] | tuple[int, int, int] | None = None,
+        colors: tuple[ tuple[int,int,int,int], tuple[int,int,int,int], tuple[int,int,int,int] ] | 
+                tuple[ tuple[int,int,int],tuple[int,int,int],tuple[int,int,int]] | None = None,
+        color1: tuple[int, int, int, int] | tuple[int, int, int] | None = None,
+        color2: tuple[int, int, int, int] | tuple[int, int, int] | None = None,
+        colo3: tuple[int, int, int, int] | tuple[int, int, int] | None = None,
         effect: int | str | None = None,
         individual: Sequence[
             int | Sequence[int] | tuple[int, int, int, int] | tuple[int, int, int]
@@ -386,6 +389,7 @@ class WLED:
         on: bool | None = None,
         palette: int | str | None = None,
         reverse: bool | None = None,
+        mirror: bool | None = None,
         selected: bool | None = None,
         speed: int | None = None,
         start: int | None = None,
@@ -442,6 +446,7 @@ class WLED:
             "on": on,
             "pal": palette,
             "rev": reverse,
+            "mi": mirror,
             "sel": selected,
             "start": start,
             "stop": stop,
@@ -486,20 +491,21 @@ class WLED:
         state = {k: v for k, v in state.items() if v is not None}
         segment = {k: v for k, v in segment.items() if v is not None}
 
-        # Determine color set
-        colors = []
-        if color_primary is not None:
-            colors.append(color_primary)
-        elif color_secondary is not None or color_tertiary is not None:
-            colors.append(self._device.state.segments[segment_id].color_primary)
+        # If we haven't received colors array, try making one from individual color#s
+        if not colors:
+            colors = []
+            if color1 is not None:
+                colors.append(color1)
+            elif color2 is not None or colo3 is not None:
+                colors.append(self._device.state.segments[segment_id].color1)
 
-        if color_secondary is not None:
-            colors.append(color_secondary)
-        elif color_tertiary is not None:
-            colors.append(self._device.state.segments[segment_id].color_secondary)
+            if color2 is not None:
+                colors.append(color2)
+            elif colo3 is not None:
+                colors.append(self._device.state.segments[segment_id].color2)
 
-        if color_tertiary is not None:
-            colors.append(color_tertiary)
+            if colo3 is not None:
+                colors.append(colo3)
 
         if colors:
             segment["col"] = colors
@@ -688,7 +694,7 @@ class WLED:
         )
 
         try:
-            async with asyncio.timeout(
+            async with async_timeout.timeout(
                 self.request_timeout * 10,
             ), self.session.get(
                 download_url,
@@ -743,7 +749,7 @@ class WLED:
             return {"version_latest_stable": None, "version_latest_beta": None}
 
         try:
-            async with asyncio.timeout(self.request_timeout):
+            async with async_timeout.timeout(self.request_timeout):
                 response = await self.session.get(
                     "https://api.github.com/repos/Aircoookie/WLED/releases",
                     headers={"Accept": "application/json"},

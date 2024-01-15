@@ -114,15 +114,16 @@ class Segment:
 
     brightness: int
     clones: int
-    color_primary: tuple[int, int, int, int] | tuple[int, int, int]
-    color_secondary: tuple[int, int, int, int] | tuple[int, int, int]
-    color_tertiary: tuple[int, int, int, int] | tuple[int, int, int]
+    color1: tuple[int, int, int, int] | tuple[int, int, int]
+    color2: tuple[int, int, int, int] | tuple[int, int, int]
+    color3: tuple[int, int, int, int] | tuple[int, int, int]
     effect: Effect
     intensity: int
     length: int
     on: bool
     palette: Palette
     reverse: bool
+    mirror: bool
     segment_id: int
     selected: bool
     speed: int
@@ -180,15 +181,16 @@ class Segment:
         return Segment(
             brightness=data.get("bri", state_brightness),
             clones=data.get("cln", -1),
-            color_primary=primary_color,  # type: ignore[arg-type]
-            color_secondary=secondary_color,  # type: ignore[arg-type]
-            color_tertiary=tertiary_color,  # type: ignore[arg-type]
+            color1=primary_color,  # type: ignore[arg-type]
+            color2=secondary_color,  # type: ignore[arg-type]
+            color3=tertiary_color,  # type: ignore[arg-type]
             effect=effect,
             intensity=data.get("ix", 0),
             length=length,
             on=data.get("on", state_on),
             palette=palette,
             reverse=data.get("rev", False),
+            mirror=data.get("mi", False),
             segment_id=segment_id,
             selected=data.get("sel", False),
             speed=data.get("sx", 0),
